@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - echo "Installing Python dependencies..."
+      - python --version
+      - pip install -r backend/requirements.txt
+      - pip install pytest scikit-learn joblib
+
+  pre_build:
+    commands:
+      - echo "Running tests..."
+      - PYTHONPATH=. pytest tests/
+
+  build:
+    commands:
+      - echo "Creating Lambda deployment package..."
+      - rm -f lambda_package.zip
+      - cd lambda_package
+      - zip -r ../lambda_package.zip .
+      - cd ..
+      - echo "Deploying Lambda..."
+      - aws lambda update-function-code --function-name SmartSpendAI --zip-file fileb://lambda_package.zip
+      - echo "Uploading frontend to S3..."
+      - aws s3 sync frontend/ s3://smartspend-ai-frontend-2026 --delete
+
+  post_build:
+    commands:
+      - echo "SmartSpend AI deployment completed successfully!"
