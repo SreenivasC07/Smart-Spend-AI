@@ -6,147 +6,369 @@ let currentDescription = "";
 let currentPrediction = "";
 
 
-// Add Expense Form
-document.getElementById("expenseForm").addEventListener("submit", async function (event) {
+// ==========================================
+// Load Expense History
+// ==========================================
 
-    event.preventDefault();
-
-    const description = document.getElementById("description").value;
-    const amount = document.getElementById("amount").value;
-    const date = document.getElementById("date").value;
-
-    if (!description || !amount || !date) {
-        alert("Please fill in all fields.");
-        return;
-    }
+async function loadExpenses() {
 
     try {
 
-        const response = await fetch(`${API_URL}/predict`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                user_id: USER_ID,
-                description: description,
-                amount: amount,
-                date: date
-            })
-        });
+        const response = await fetch(
+            `${API_URL}/expenses?user_id=${USER_ID}`
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || "Prediction failed");
+            throw new Error(data.error || "Could not load expenses");
         }
 
-
-        // Save current expense information
-        currentDescription = description;
-        currentPrediction = data.category;
-
-
-        // Display prediction
-        document.getElementById("predictionText").textContent =
-            `AI Prediction: ${data.category} (${data.prediction_type})`;
-
-
-        // Show feedback buttons
-        document.getElementById("feedbackSection").classList.remove("hidden");
-
-
-        // Add expense to history
-        addExpenseToTable(
-            description,
-            amount,
-            date,
-            data.category
-        );
+        displayExpenses(data.expenses);
 
     } catch (error) {
 
-        console.error("Error:", error);
+        console.error("Error loading expenses:", error);
 
-        document.getElementById("predictionText").textContent =
-            "Unable to connect to AI backend.";
+        document.getElementById("emptyMessage").textContent =
+            "Unable to load expense history.";
 
-        alert("Could not connect to the AWS backend.");
     }
-
-});
-
-
-// Add expense to history table
-function addExpenseToTable(description, amount, date, category) {
-
-    const tableBody = document.getElementById("expenseTable");
-
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-        <td>${description}</td>
-        <td>₹${amount}</td>
-        <td>${date}</td>
-        <td>${category}</td>
-    `;
-
-    tableBody.appendChild(row);
 }
 
 
-// User accepts prediction
-document.getElementById("acceptButton").addEventListener("click", function () {
+// ==========================================
+// Display Expenses
+// ==========================================
 
-    alert("AI prediction accepted!");
+function displayExpenses(expenses) {
 
-});
+    const tableBody = document.getElementById("expenseTable");
+    const emptyMessage = document.getElementById("emptyMessage");
 
+    tableBody.innerHTML = "";
 
-// User corrects prediction
-document.getElementById("correctButton").addEventListener("click", async function () {
+    if (!expenses || expenses.length === 0) {
 
-    const correctCategory = prompt(
-        "Enter the correct category:\nFood, Education, Transport, Shopping"
-    );
+        emptyMessage.textContent = "No expenses added yet.";
+        emptyMessage.style.display = "block";
 
-    if (!correctCategory) {
+        updateDashboard([]);
+
         return;
     }
 
-    try {
+    emptyMessage.style.display = "none";
 
-        const response = await fetch(`${API_URL}/feedback`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                user_id: USER_ID,
-                description: currentDescription,
-                category: correctCategory
-            })
-        });
+    expenses.forEach(expense => {
 
-        const data = await response.json();
+        const row = document.createElement("tr");
 
-        if (!response.ok) {
-            throw new Error(data.error || "Feedback failed");
+        row.innerHTML = `
+            <td>${expense.date}</td>
+            <td>${expense.description}</td>
+            <td>₹${expense.amount}</td>
+            <td>${expense.category}</td>
+        `;
+
+        tableBody.appendChild(row);
+
+    });
+
+    updateDashboard(expenses);
+}
+
+
+// ==========================================
+// Update Dashboard
+// ==========================================
+
+function updateDashboard(expenses) {
+
+    let total = 0;
+
+    let food = 0;
+    let education = 0;
+    let transport = 0;
+    let shopping = 0;
+
+
+    expenses.forEach(expense => {
+
+        const amount = Number(expense.amount);
+
+        total += amount;
+
+
+        switch (expense.category) {
+
+            case "Food":
+                food += amount;
+                break;
+
+            case "Education":
+                education += amount;
+                break;
+
+            case "Transport":
+                transport += amount;
+                break;
+
+            case "Shopping":
+                shopping += amount;
+                break;
+
+        }
+
+    });
+
+
+    document.getElementById("totalSpending").textContent =
+        `₹${total}`;
+
+    document.getElementById("foodTotal").textContent =
+        `₹${food}`;
+
+    document.getElementById("educationTotal").textContent =
+        `₹${education}`;
+
+    document.getElementById("transportTotal").textContent =
+        `₹${transport}`;
+
+    document.getElementById("shoppingTotal").textContent =
+        `₹${shopping}`;
+
+}
+
+
+// ==========================================
+// Add Expense
+// ==========================================
+
+document.getElementById("expenseForm").addEventListener(
+    "submit",
+    async function (event) {
+
+        event.preventDefault();
+
+
+        const description =
+            document.getElementById("description").value;
+
+        const amount =
+            document.getElementById("amount").value;
+
+        const date =
+            document.getElementById("date").value;
+
+
+        if (!description || !amount || !date) {
+
+            alert("Please fill in all fields.");
+
+            return;
         }
 
 
-        // Update prediction display
-        document.getElementById("predictionText").textContent =
-            `Corrected Category: ${correctCategory}`;
+        try {
+
+            const response = await fetch(
+                `${API_URL}/predict`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        user_id: USER_ID,
+
+                        description: description,
+
+                        amount: amount,
+
+                        date: date
+
+                    })
+
+                }
+            );
 
 
-        alert("Your correction has been learned by the AI!");
+            const data = await response.json();
 
-    } catch (error) {
 
-        console.error("Error:", error);
+            if (!response.ok) {
 
-        alert("Could not save your correction.");
+                throw new Error(
+                    data.error || "Prediction failed"
+                );
+
+            }
+
+
+            // Save current expense information
+
+            currentDescription = description;
+
+            currentPrediction = data.category;
+
+
+            // Display AI prediction
+
+            document.getElementById(
+                "predictionText"
+            ).textContent =
+                `AI Prediction: ${data.category} (${data.prediction_type})`;
+
+
+            // Show feedback buttons
+
+            document.getElementById(
+                "feedbackSection"
+            ).classList.remove("hidden");
+
+
+            // Reload expenses from DynamoDB
+
+            await loadExpenses();
+
+
+            // Clear form
+
+            document.getElementById("expenseForm").reset();
+
+
+        } catch (error) {
+
+            console.error("Error:", error);
+
+
+            document.getElementById(
+                "predictionText"
+            ).textContent =
+                "Unable to connect to AI backend.";
+
+
+            alert(
+                "Could not connect to the AWS backend."
+            );
+
+        }
+
     }
+);
 
-});
+
+// ==========================================
+// Accept Prediction
+// ==========================================
+
+document.getElementById(
+    "acceptButton"
+).addEventListener(
+    "click",
+    function () {
+
+        alert(
+            "AI prediction accepted!"
+        );
+
+    }
+);
+
+
+// ==========================================
+// Correct Prediction
+// ==========================================
+
+document.getElementById(
+    "correctButton"
+).addEventListener(
+    "click",
+    async function () {
+
+
+        const correctCategory = prompt(
+            "Enter the correct category:\nFood, Education, Transport, Shopping"
+        );
+
+
+        if (!correctCategory) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response = await fetch(
+                `${API_URL}/feedback`,
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        user_id: USER_ID,
+
+                        description: currentDescription,
+
+                        category: correctCategory
+
+                    })
+
+                }
+            );
+
+
+            const data = await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error || "Feedback failed"
+                );
+
+            }
+
+
+            document.getElementById(
+                "predictionText"
+            ).textContent =
+                `Corrected Category: ${correctCategory}`;
+
+
+            alert(
+                "Your correction has been learned by the AI!"
+            );
+
+
+        } catch (error) {
+
+            console.error("Error:", error);
+
+
+            alert(
+                "Could not save your correction."
+            );
+
+        }
+
+    }
+);
+
+
+// ==========================================
+// Load expenses when page opens
+// ==========================================
+
+loadExpenses();

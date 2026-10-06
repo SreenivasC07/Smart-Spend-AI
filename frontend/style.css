@@ -1,10 +1,9 @@
 * {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
 }
 
 body {
+    margin: 0;
     font-family: Arial, sans-serif;
     background: #f4f6f8;
     color: #222;
@@ -14,20 +13,62 @@ header {
     background: #1f2937;
     color: white;
     text-align: center;
-    padding: 25px;
+    padding: 30px 20px;
 }
 
 header h1 {
-    margin-bottom: 8px;
+    margin: 0;
+    font-size: 32px;
+}
+
+header p {
+    margin-top: 8px;
+    font-size: 16px;
 }
 
 main {
     width: 90%;
-    max-width: 1000px;
+    max-width: 1100px;
     margin: 30px auto;
 }
 
-section {
+/* Dashboard */
+
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.summary-card h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+}
+
+.summary-card p {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.total-card {
+    border-top: 4px solid #2563eb;
+}
+
+/* Sections */
+
+.expense-form,
+.prediction,
+.expense-list {
     background: white;
     padding: 25px;
     margin-bottom: 25px;
@@ -36,21 +77,21 @@ section {
 }
 
 h2 {
-    margin-bottom: 20px;
+    margin-top: 0;
+    color: #1f2937;
 }
 
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+/* Form */
 
 label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 6px;
     font-weight: bold;
-    margin-top: 8px;
 }
 
 input {
+    width: 100%;
     padding: 12px;
     border: 1px solid #ccc;
     border-radius: 6px;
@@ -58,44 +99,45 @@ input {
 }
 
 button {
-    padding: 12px 18px;
-    margin-top: 10px;
+    margin-top: 20px;
+    padding: 11px 18px;
     border: none;
     border-radius: 6px;
-    cursor: pointer;
-    font-size: 15px;
     background: #2563eb;
     color: white;
+    font-size: 15px;
+    cursor: pointer;
 }
 
 button:hover {
     opacity: 0.9;
 }
 
-#acceptButton {
-    background: #16a34a;
-}
-
 #correctButton {
-    background: #dc2626;
+    background: #6b7280;
+    margin-left: 8px;
 }
 
-.prediction {
-    text-align: center;
-}
+/* Prediction */
 
 #predictionText {
     font-size: 18px;
-    margin-bottom: 15px;
+    font-weight: bold;
+    padding: 15px;
+    background: #f3f4f6;
+    border-radius: 6px;
 }
 
 .hidden {
     display: none;
 }
 
+/* Expense table */
+
 table {
     width: 100%;
     border-collapse: collapse;
+    margin-top: 15px;
 }
 
 th,
@@ -106,20 +148,37 @@ td {
 }
 
 th {
-    background: #f1f5f9;
+    background: #f3f4f6;
+}
+
+#emptyMessage {
+    text-align: center;
+    color: #777;
+    margin-top: 20px;
+}
+
+/* Mobile */
+
+@media (max-width: 900px) {
+
+    .dashboard {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
 }
 
 @media (max-width: 600px) {
+
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+
     main {
-        width: 95%;
+        width: 94%;
     }
 
     table {
         font-size: 13px;
     }
 
-    th,
-    td {
-        padding: 8px;
-    }
 }

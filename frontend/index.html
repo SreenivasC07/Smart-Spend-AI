@@ -4,75 +4,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartSpend AI - Expense Tracker</title>
+    <title>SmartSpend AI - Personalized Expense Tracker</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
     <header>
-        <h1>SmartSpend AI - Personalized Expense Tracker</h1>
-        <p>AI-Powered Personalized Expense Tracker</p>
+        <h1>SmartSpend AI</h1>
+        <p>Personalized AI-Powered Expense Tracker</p>
     </header>
 
     <main>
 
+        <!-- Dashboard Summary -->
+        <section class="dashboard">
+
+            <div class="summary-card total-card">
+                <h3>Total Spending</h3>
+                <p id="totalSpending">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Food</h3>
+                <p id="foodTotal">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Education</h3>
+                <p id="educationTotal">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Transport</h3>
+                <p id="transportTotal">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Shopping</h3>
+                <p id="shoppingTotal">₹0</p>
+            </div>
+
+        </section>
+
+
+        <!-- Add Expense -->
         <section class="expense-form">
-            <h2>Add Expense</h2>
+
+            <h2>Add New Expense</h2>
 
             <form id="expenseForm">
 
                 <label for="description">Expense Description</label>
-                <input type="text" id="description" placeholder="Example: Bought Python book" required>
+
+                <input
+                    type="text"
+                    id="description"
+                    placeholder="Example: Bought Python book"
+                    required
+                >
+
 
                 <label for="amount">Amount (₹)</label>
-                <input type="number" id="amount" placeholder="Example: 500" min="1" required>
+
+                <input
+                    type="number"
+                    id="amount"
+                    placeholder="Example: 500"
+                    min="1"
+                    required
+                >
+
 
                 <label for="date">Date</label>
-                <input type="date" id="date" required>
+
+                <input
+                    type="date"
+                    id="date"
+                    required
+                >
+
 
                 <button type="submit">Add Expense</button>
 
             </form>
+
         </section>
 
+
+        <!-- AI Prediction -->
         <section class="prediction">
+
             <h2>AI Category Prediction</h2>
 
             <p id="predictionText">
-                Enter an expense to get an AI category prediction.
+                Add an expense to let SmartSpend AI categorize it automatically.
             </p>
 
             <div id="feedbackSection" class="hidden">
 
                 <p>Is this category correct?</p>
 
-                <button id="acceptButton">Yes</button>
-                <button id="correctButton">Correct Category</button>
+                <button id="acceptButton">Yes, Correct</button>
+
+                <button id="correctButton">
+                    Correct Category
+                </button>
 
             </div>
+
         </section>
 
+
+        <!-- Expense History -->
         <section class="expense-list">
+
             <h2>Expense History</h2>
 
             <table>
+
                 <thead>
+
                     <tr>
+                        <th>Date</th>
                         <th>Description</th>
                         <th>Amount</th>
-                        <th>Date</th>
                         <th>Category</th>
                     </tr>
+
                 </thead>
 
                 <tbody id="expenseTable">
                 </tbody>
 
             </table>
+
+            <p id="emptyMessage">
+                No expenses added yet.
+            </p>
+
         </section>
 
     </main>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html><!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSpend AI - Personalized Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>SmartSpend AI</h1>
+        <p>Personalized AI-Powered Expense Tracker</p>
+    </header>
+
+    <main>
+
+        <!-- Dashboard Summary -->
+        <section class="dashboard">
+
+            <div class="summary-card total-card">
+                <h3>Total Spending</h3>
+                <p id="totalSpending">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Food</h3>
+                <p id="foodTotal">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Education</h3>
+                <p id="educationTotal">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Transport</h3>
+                <p id="transportTotal">₹0</p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Shopping</h3>
+                <p id="shoppingTotal">₹0</p>
+            </div>
+
+        </section>
+
+
+        <!-- Add Expense -->
+        <section class="expense-form">
+
+            <h2>Add New Expense</h2>
+
+            <form id="expenseForm">
+
+                <label for="description">Expense Description</label>
+
+                <input
+                    type="text"
+                    id="description"
+                    placeholder="Example: Bought Python book"
+                    required
+                >
+
+
+                <label for="amount">Amount (₹)</label>
+
+                <input
+                    type="number"
+                    id="amount"
+                    placeholder="Example: 500"
+                    min="1"
+                    required
+                >
+
+
+                <label for="date">Date</label>
+
+                <input
+                    type="date"
+                    id="date"
+                    required
+                >
+
+
+                <button type="submit">Add Expense</button>
+
+            </form>
+
+        </section>
+
+
+        <!-- AI Prediction -->
+        <section class="prediction">
+
+            <h2>AI Category Prediction</h2>
+
+            <p id="predictionText">
+                Add an expense to let SmartSpend AI categorize it automatically.
+            </p>
+
+            <div id="feedbackSection" class="hidden">
+
+                <p>Is this category correct?</p>
+
+                <button id="acceptButton">Yes, Correct</button>
+
+                <button id="correctButton">
+                    Correct Category
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- Expense History -->
+        <section class="expense-list">
+
+            <h2>Expense History</h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="expenseTable">
+                </tbody>
+
+            </table>
+
+            <p id="emptyMessage">
+                No expenses added yet.
+            </p>
+
+        </section>
+
+    </main>
+
 
     <script src="script.js"></script>
 
