@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSpend AI - Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>SmartSpend AI</h1>
+        <p>AI-Powered Personalized Expense Tracker</p>
+    </header>
+
+    <main>
+
+        <section class="expense-form">
+            <h2>Add Expense</h2>
+
+            <form id="expenseForm">
+
+                <label for="description">Expense Description</label>
+                <input type="text" id="description" placeholder="Example: Bought Python book" required>
+
+                <label for="amount">Amount (₹)</label>
+                <input type="number" id="amount" placeholder="Example: 500" min="1" required>
+
+                <label for="date">Date</label>
+                <input type="date" id="date" required>
+
+                <button type="submit">Add Expense</button>
+
+            </form>
+        </section>
+
+        <section class="prediction">
+            <h2>AI Category Prediction</h2>
+
+            <p id="predictionText">
+                Enter an expense to get an AI category prediction.
+            </p>
+
+            <div id="feedbackSection" class="hidden">
+
+                <p>Is this category correct?</p>
+
+                <button id="acceptButton">Yes</button>
+                <button id="correctButton">Correct Category</button>
+
+            </div>
+        </section>
+
+        <section class="expense-list">
+            <h2>Expense History</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+
+                <tbody id="expenseTable">
+                </tbody>
+
+            </table>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
