@@ -40,7 +40,7 @@ IGNORED_WORDS = {
     "from",
     "with",
     "for",
-    "the"
+    "the",
 }
 
 
@@ -49,7 +49,6 @@ IGNORED_WORDS = {
 # ==========================================
 
 def get_meaningful_words(text):
-
     words = re.findall(
         r"[a-zA-Z]+",
         text.lower()
@@ -61,6 +60,49 @@ def get_meaningful_words(text):
         if len(word) >= 4
         and word not in IGNORED_WORDS
     }
+
+
+# ==========================================
+# Get authenticated user ID from Cognito JWT
+# ==========================================
+
+def get_user_id_from_event(event):
+    """
+    Get the authenticated Cognito user's unique
+    user ID from the JWT token supplied by
+    API Gateway.
+
+    API Gateway HTTP API JWT claims:
+    event
+      -> requestContext
+      -> authorizer
+      -> jwt
+      -> claims
+      -> sub
+    """
+
+    try:
+        claims = (
+            event
+            .get("requestContext", {})
+            .get("authorizer", {})
+            .get("jwt", {})
+            .get("claims", {})
+        )
+
+        user_id = claims.get("sub")
+
+        if not user_id:
+            raise ValueError(
+                "Authenticated user ID not found"
+            )
+
+        return user_id
+
+    except Exception:
+        raise ValueError(
+            "Invalid or missing authentication token"
+        )
 
 
 # ==========================================
@@ -141,7 +183,6 @@ def get_personalized_category(
             )
 
             if score > best_score:
-
                 best_score = score
                 best_category = category
 
@@ -151,7 +192,6 @@ def get_personalized_category(
         return None
 
     except Exception:
-
         # If personalization lookup fails,
         # use the general ML model.
         return None
@@ -181,7 +221,6 @@ def get_request_data(event):
     )
 
     if query_parameters:
-
         data.update(query_parameters)
 
     return data
@@ -191,12 +230,10 @@ def get_request_data(event):
 # Predict and save expense
 # ==========================================
 
-def predict_expense(data):
-
-    user_id = data.get(
-        "user_id",
-        "demo_user"
-    )
+def predict_expense(
+    data,
+    user_id
+):
 
     description = data.get(
         "description",
@@ -208,7 +245,9 @@ def predict_expense(data):
     date = data.get("date")
 
 
+    # ======================================
     # Validate description
+    # ======================================
 
     if not description:
 
@@ -263,7 +302,9 @@ def predict_expense(data):
     )
 
 
+    # ======================================
     # Use today's date if not provided
+    # ======================================
 
     if not date:
 
@@ -289,11 +330,12 @@ def predict_expense(data):
         "category": category,
 
         "date": date
-
     }
 
 
+    # ======================================
     # Store amount if provided
+    # ======================================
 
     if amount is not None and amount != "":
 
@@ -302,7 +344,9 @@ def predict_expense(data):
         )
 
 
+    # ======================================
     # Save expense
+    # ======================================
 
     table.put_item(
         Item=item
@@ -319,7 +363,10 @@ def predict_expense(data):
 
         "headers": {
             "Content-Type":
-            "application/json"
+            "application/json",
+
+            "Access-Control-Allow-Origin":
+            "*"
         },
 
         "body": json.dumps({
@@ -340,7 +387,6 @@ def predict_expense(data):
             prediction_type
 
         })
-
     }
 
 
@@ -348,12 +394,10 @@ def predict_expense(data):
 # Save user feedback
 # ==========================================
 
-def save_feedback(data):
-
-    user_id = data.get(
-        "user_id",
-        "demo_user"
-    )
+def save_feedback(
+    data,
+    user_id
+):
 
     description = data.get(
         "description",
@@ -366,7 +410,9 @@ def save_feedback(data):
     ).strip()
 
 
+    # ======================================
     # Validate input
+    # ======================================
 
     if not description or not category:
 
@@ -385,11 +431,12 @@ def save_feedback(data):
                 "Description and category are required"
 
             })
-
         }
 
 
+    # ======================================
     # Generate feedback ID
+    # ======================================
 
     feedback_id = (
         "feedback#"
@@ -398,7 +445,9 @@ def save_feedback(data):
     )
 
 
+    # ======================================
     # Store user's correction
+    # ======================================
 
     table.put_item(
 
@@ -420,7 +469,6 @@ def save_feedback(data):
             category
 
         }
-
     )
 
 
@@ -430,7 +478,10 @@ def save_feedback(data):
 
         "headers": {
             "Content-Type":
-            "application/json"
+            "application/json",
+
+            "Access-Control-Allow-Origin":
+            "*"
         },
 
         "body": json.dumps({
@@ -448,7 +499,6 @@ def save_feedback(data):
             category
 
         })
-
     }
 
 
@@ -456,16 +506,14 @@ def save_feedback(data):
 # Get saved expenses
 # ==========================================
 
-def get_expenses(data):
+def get_expenses(
+    user_id
+):
 
-    user_id = data.get(
-        "user_id",
-        "demo_user"
-    )
-
-
-    # Retrieve all records
-    # belonging to this user
+    # ======================================
+    # Retrieve all records belonging
+    # to this authenticated user
+    # ======================================
 
     response = table.query(
 
@@ -528,7 +576,6 @@ def get_expenses(data):
                     "0"
                 )
             )
-
         }
 
 
@@ -537,7 +584,9 @@ def get_expenses(data):
         )
 
 
+    # ======================================
     # Newest expenses first
+    # ======================================
 
     expenses.sort(
 
@@ -548,7 +597,6 @@ def get_expenses(data):
         ),
 
         reverse=True
-
     )
 
 
@@ -572,7 +620,6 @@ def get_expenses(data):
             expenses
 
         })
-
     }
 
 
@@ -587,14 +634,27 @@ def lambda_handler(
 
     try:
 
+        # ==================================
+        # Get authenticated Cognito user
+        # ==================================
+
+        user_id = get_user_id_from_event(
+            event
+        )
+
+
+        # ==================================
         # Get request data
+        # ==================================
 
         data = get_request_data(
             event
         )
 
 
+        # ==================================
         # Determine API path
+        # ==================================
 
         path = event.get(
             "rawPath",
@@ -614,7 +674,8 @@ def lambda_handler(
         ):
 
             return save_feedback(
-                data
+                data,
+                user_id
             )
 
 
@@ -627,7 +688,7 @@ def lambda_handler(
         ):
 
             return get_expenses(
-                data
+                user_id
             )
 
 
@@ -636,8 +697,35 @@ def lambda_handler(
         # ==================================
 
         return predict_expense(
-            data
+            data,
+            user_id
         )
+
+
+    except ValueError as e:
+
+        return {
+
+            "statusCode": 401,
+
+            "headers": {
+
+                "Content-Type":
+                "application/json",
+
+                "Access-Control-Allow-Origin":
+                "*"
+
+            },
+
+            "body": json.dumps({
+
+                "error":
+                str(e)
+
+            })
+
+        }
 
 
     except Exception as e:
