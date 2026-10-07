@@ -8,7 +8,7 @@ const CLIENT_ID =
     "5ji215p5ttb0su6tcutit1qpvd";
 
 const REDIRECT_URI =
-    "https://d84l1y8p4kdic.cloudfront.net";
+    "https://d3jyz15ht8j14o.cloudfront.net";
 
 const COGNITO_AUTH_URL =
     `${COGNITO_DOMAIN}/oauth2/authorize`;
