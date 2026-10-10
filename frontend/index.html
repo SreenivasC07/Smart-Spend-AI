@@ -10,18 +10,20 @@
 
 <body>
 
-    <header>
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="SmartSpend AI home">
+            <span class="brand-mark" aria-hidden="true">S</span>
+            <span class="brand-copy">
+                <strong>SmartSpend AI</strong>
+                <small>Your personal finance dashboard</small>
+            </span>
+        </a>
 
-        <div>
-            <h1>SmartSpend AI</h1>
-            <p>Personalized AI-Powered Expense Tracker</p>
+        <div class="account-area">
+            <span id="welcomeMessage" class="welcome-message" aria-live="polite"></span>
+            <button id="loginButton" class="account-button" type="button" onclick="login()">Login</button>
+            <button id="logoutButton" class="account-button logout-button hidden" type="button" onclick="logout()">Logout</button>
         </div>
-
-        <!-- Cognito Login -->
-        <button id="loginButton" type="button" onclick="login()">
-            Login
-        </button>
-
     </header>
 
 

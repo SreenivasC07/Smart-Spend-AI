@@ -19,6 +19,7 @@ const COGNITO_AUTH_URL =
 // ==========================================
 
 let USER_ID = null;
+let USER_NAME = null;
 
 let currentDescription = "";
 let currentPrediction = "";
@@ -257,6 +258,7 @@ async function handleCognitoCallback() {
 
         USER_ID =
             tokenPayload.sub;
+        USER_NAME = getDisplayName(tokenPayload);
 
 
         console.log(
@@ -333,6 +335,7 @@ function restoreUserSession() {
 
         USER_ID =
             tokenPayload.sub;
+        USER_NAME = getDisplayName(tokenPayload);
 
 
         console.log(
@@ -364,6 +367,7 @@ function restoreUserSession() {
         );
 
         USER_ID = null;
+        USER_NAME = null;
 
         return false;
 
@@ -385,41 +389,63 @@ function getIdToken() {
 
 
 // ==========================================
-// Update Login Button
+// User display name and account controls
 // ==========================================
 
+function getDisplayName(payload) {
+    if (!payload) return "";
+
+    const name = payload.name || payload.given_name || payload.preferred_username;
+    if (name && String(name).trim()) return String(name).trim();
+
+    const email = payload.email;
+    if (email && String(email).trim()) return String(email).trim();
+
+    const username = payload["cognito:username"];
+    if (username && String(username).trim()) return String(username).trim();
+
+    return "My account";
+}
+
 function updateLoginButton() {
-
-    const loginButton =
-        document.getElementById(
-            "loginButton"
-        );
-
-
-    if (!loginButton) {
-
-        return;
-
-    }
-
+    const loginButton = document.getElementById("loginButton");
+    const logoutButton = document.getElementById("logoutButton");
+    const welcomeMessage = document.getElementById("welcomeMessage");
 
     if (USER_ID) {
-
-        loginButton.textContent =
-            "Logged In";
-
-        loginButton.disabled =
-            true;
-
+        if (loginButton) loginButton.classList.add("hidden");
+        if (logoutButton) logoutButton.classList.remove("hidden");
+        if (welcomeMessage) {
+            welcomeMessage.textContent = `Welcome, ${USER_NAME || "there"}`;
+            welcomeMessage.classList.remove("hidden");
+        }
     } else {
-
-        loginButton.textContent =
-            "Login";
-
-        loginButton.disabled =
-            false;
-
+        if (loginButton) loginButton.classList.remove("hidden");
+        if (logoutButton) logoutButton.classList.add("hidden");
+        if (welcomeMessage) {
+            welcomeMessage.textContent = "";
+            welcomeMessage.classList.add("hidden");
+        }
     }
+}
+
+// Cognito hosted UI logout. The URI must match the allowed sign-out URL
+// configured in the Cognito app client.
+function logout() {
+    ["id_token", "access_token", "refresh_token", "pkce_code_verifier"].forEach(key => {
+        sessionStorage.removeItem(key);
+    });
+
+    USER_ID = null;
+    USER_NAME = null;
+    updateLoginButton();
+
+    const logoutUrl =
+        `${COGNITO_DOMAIN}/logout` +
+        `?client_id=${encodeURIComponent(CLIENT_ID)}` +
+        `&logout_uri=${encodeURIComponent(REDIRECT_URI)}`;
+
+    window.location.assign(logoutUrl);
 }
 
 
