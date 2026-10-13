@@ -125,6 +125,58 @@
         </section>
 
 
+
+
+        <!-- Monthly Expense Comparison -->
+        <section class="feature-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Monthly Expense Comparison</h2>
+                    <p class="muted">Compare this month with the previous month.</p>
+                </div>
+                <label class="month-picker-label" for="comparisonMonth">Month
+                    <input type="month" id="comparisonMonth">
+                </label>
+            </div>
+            <div class="comparison-cards">
+                <div class="mini-card">
+                    <span id="currentMonthLabel">Selected month</span>
+                    <strong id="currentMonthTotal">₹0</strong>
+                </div>
+                <div class="mini-card">
+                    <span id="previousMonthLabel">Previous month</span>
+                    <strong id="previousMonthTotal">₹0</strong>
+                </div>
+                <div class="mini-card">
+                    <span>Change</span>
+                    <strong id="monthlyChange">No change</strong>
+                </div>
+            </div>
+            <div id="monthlyChart" class="monthly-chart" aria-label="Monthly expense comparison chart"></div>
+            <p id="monthlyComparisonMessage" class="muted" aria-live="polite"></p>
+        </section>
+
+        <!-- Monthly Budget -->
+        <section class="feature-panel budget-panel">
+            <h2>Monthly Budget</h2>
+            <p class="muted">Set a budget for the selected month. Your budget is saved to your account.</p>
+            <form id="budgetForm" class="budget-form">
+                <label for="budgetMonth">Month
+                    <input type="month" id="budgetMonth" required>
+                </label>
+                <label for="budgetAmount">Budget limit (₹)
+                    <input type="number" id="budgetAmount" min="1" step="0.01" placeholder="Example: 10000" required>
+                </label>
+                <button type="submit">Save Budget</button>
+            </form>
+            <div class="budget-status">
+                <p>Monthly budget: <strong id="budgetLimit">Not set</strong></p>
+                <p>Spent this month: <strong id="budgetSpent">₹0</strong></p>
+                <p>Remaining: <strong id="budgetRemaining">—</strong></p>
+            </div>
+            <p id="budgetMessage" aria-live="polite" class="budget-message"></p>
+        </section>
+
         <!-- Expense History -->
         <section class="expense-list">
 

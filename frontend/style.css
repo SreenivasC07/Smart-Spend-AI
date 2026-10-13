@@ -279,3 +279,186 @@ th {
     }
 
 }
+
+/* Monthly comparison and budget features */
+.feature-panel {
+    background: #fff;
+    margin: 24px 0;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.07);
+}
+
+.feature-panel h2 {
+    margin-top: 0;
+}
+
+.panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.muted {
+    color: #64748b;
+    margin-top: 6px;
+}
+
+.month-picker-label,
+.budget-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-weight: 600;
+}
+
+.comparison-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+}
+
+.mini-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.mini-card span {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.mini-card strong {
+    font-size: 1.25rem;
+    overflow-wrap: anywhere;
+}
+
+.monthly-chart {
+    display: grid;
+    gap: 16px;
+    margin-top: 22px;
+}
+
+.chart-row {
+    display: grid;
+    grid-template-columns: minmax(130px, 1fr) minmax(90px, 2fr) minmax(90px, auto);
+    align-items: center;
+    gap: 12px;
+}
+
+.chart-row>span {
+    font-size: 0.9rem;
+}
+
+.chart-row>strong {
+    text-align: right;
+    font-size: 0.9rem;
+}
+
+.bar-track {
+    height: 18px;
+    border-radius: 20px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.bar {
+    height: 100%;
+    min-width: 0;
+    border-radius: 20px;
+}
+
+.previous-bar {
+    background: #94a3b8;
+}
+
+.current-bar {
+    background: #2563eb;
+}
+
+.budget-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: end;
+    margin: 20px 0;
+}
+
+.budget-form input,
+.month-picker-label input {
+    box-sizing: border-box;
+    min-height: 42px;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    font: inherit;
+    width: 100%;
+}
+
+.budget-status {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.budget-status p {
+    margin: 4px 0;
+}
+
+.budget-message {
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.near-budget {
+    color: #b45309;
+}
+
+.over-budget {
+    color: #b91c1c;
+}
+
+.delete-expense-button {
+    background: #b91c1c;
+    margin-left: 5px;
+}
+
+.delete-expense-button:hover {
+    background: #991b1b;
+}
+
+.edit-expense-button,
+.delete-expense-button {
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+@media (max-width: 700px) {
+    .comparison-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .budget-form {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .chart-row>strong {
+        text-align: left;
+    }
+}

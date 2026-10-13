@@ -597,13 +597,17 @@ function displayExpenses(expenses) {
                 <td></td>
                 <td></td>
                 <td></td>
-                <td><button type="button" class="edit-expense-button">Edit</button></td>
+                <td>
+                    <button type="button" class="edit-expense-button">Edit</button>
+                    <button type="button" class="delete-expense-button">Delete</button>
+                </td>
             `;
             row.cells[0].textContent = expense.date || "";
             row.cells[1].textContent = expense.description || "";
             row.cells[2].textContent = `₹${expense.amount || "0"}`;
             row.cells[3].textContent = expense.category || "";
             row.querySelector(".edit-expense-button").addEventListener("click", () => editExpense(expense));
+            row.querySelector(".delete-expense-button").addEventListener("click", () => deleteExpense(expense));
 
             tableBody.appendChild(
                 row
@@ -663,6 +667,231 @@ async function editExpense(expense) {
 // ==========================================
 // Update Dashboard
 // ==========================================
+
+
+// ==========================================
+// Delete an expense
+// ==========================================
+
+async function deleteExpense(expense) {
+    if (!USER_ID) {
+        alert("Please login before deleting an expense.");
+        return;
+    }
+
+    const confirmed = confirm(
+        `Delete "${expense.description}" (${formatINR(expense.amount)})? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    const idToken = getIdToken();
+    if (!idToken) {
+        alert("Authentication token not found. Please login again.");
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/expenses/${encodeURIComponent(expense.expense_id)}`,
+            {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${idToken}` }
+            }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.error || "Could not delete expense.");
+        }
+        alert(data.message || "Expense deleted successfully.");
+        await loadExpenses();
+    } catch (error) {
+        console.error("Delete expense error:", error);
+        alert(error.message || "Could not delete expense. Please try again.");
+    }
+}
+
+function formatINR(value) {
+    return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+}
+
+function currentMonthValue() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthOffset(monthValue, offset) {
+    const [year, month] = (monthValue || currentMonthValue()).split("-").map(Number);
+    const date = new Date(year, month - 1 + offset, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(monthValue) {
+    if (!monthValue) return "Selected month";
+    const [year, month] = monthValue.split("-").map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString("en-IN", {
+        month: "long", year: "numeric"
+    });
+}
+
+function expensesForMonth(expenses, monthValue) {
+    return (expenses || []).filter(expense =>
+        typeof expense.date === "string" && expense.date.slice(0, 7) === monthValue
+    );
+}
+
+function totalForMonth(expenses, monthValue) {
+    return expensesForMonth(expenses, monthValue).reduce(
+        (sum, expense) => sum + (Number(expense.amount) || 0), 0
+    );
+}
+
+function updateMonthlyComparison(expenses) {
+    const monthInput = document.getElementById("comparisonMonth");
+    if (!monthInput) return;
+    const selectedMonth = monthInput.value || currentMonthValue();
+    const previousMonth = monthOffset(selectedMonth, -1);
+    const currentTotal = totalForMonth(expenses, selectedMonth);
+    const previousTotal = totalForMonth(expenses, previousMonth);
+
+    document.getElementById("currentMonthLabel").textContent = monthLabel(selectedMonth);
+    document.getElementById("previousMonthLabel").textContent = monthLabel(previousMonth);
+    document.getElementById("currentMonthTotal").textContent = formatINR(currentTotal);
+    document.getElementById("previousMonthTotal").textContent = formatINR(previousTotal);
+
+    const changeElement = document.getElementById("monthlyChange");
+    if (previousTotal === 0) {
+        changeElement.textContent = currentTotal === 0 ? "No spending" : "New spending";
+    } else {
+        const percentage = ((currentTotal - previousTotal) / previousTotal) * 100;
+        changeElement.textContent = `${percentage > 0 ? "+" : ""}${percentage.toFixed(1)}%`;
+    }
+
+    const maxTotal = Math.max(currentTotal, previousTotal, 1);
+    const chart = document.getElementById("monthlyChart");
+    chart.innerHTML = `
+        <div class="chart-row">
+            <span>${escapeHtml(monthLabel(previousMonth))}</span>
+            <div class="bar-track"><div class="bar previous-bar" style="width:${(previousTotal / maxTotal) * 100}%"></div></div>
+            <strong>${formatINR(previousTotal)}</strong>
+        </div>
+        <div class="chart-row">
+            <span>${escapeHtml(monthLabel(selectedMonth))}</span>
+            <div class="bar-track"><div class="bar current-bar" style="width:${(currentTotal / maxTotal) * 100}%"></div></div>
+            <strong>${formatINR(currentTotal)}</strong>
+        </div>`;
+    document.getElementById("monthlyComparisonMessage").textContent =
+        currentTotal > previousTotal ? "Spending increased compared with the previous month." :
+            currentTotal < previousTotal ? "Spending decreased compared with the previous month." :
+                "Spending is the same for both months.";
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[character]);
+}
+
+async function loadBudget() {
+    const month = document.getElementById("budgetMonth")?.value || currentMonthValue();
+    const token = getIdToken();
+    if (!USER_ID || !token) return;
+
+    try {
+        const response = await fetch(`${API_URL}/budget?month=${encodeURIComponent(month)}`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || data.error || "Could not load budget.");
+
+        document.getElementById("budgetAmount").value =
+            data.budget && data.budget.amount != null ? data.budget.amount : "";
+        document.getElementById("budgetLimit").textContent =
+            data.budget && data.budget.amount != null ? formatINR(data.budget.amount) : "Not set";
+        document.getElementById("budgetMessage").textContent =
+            data.budget ? "Budget loaded for " + monthLabel(month) + "." : "No budget set for this month yet.";
+        if (window.smartSpendExpenses) updateBudgetSpent(window.smartSpendExpenses);
+    } catch (error) {
+        console.error("Load budget error:", error);
+        document.getElementById("budgetMessage").textContent =
+            "Could not load budget. Confirm the /budget API route is configured after deployment.";
+    }
+}
+
+function updateBudgetSpent(expenses) {
+    window.smartSpendExpenses = expenses || [];
+    const month = document.getElementById("budgetMonth")?.value || currentMonthValue();
+    const spent = totalForMonth(expenses, month);
+    document.getElementById("budgetSpent").textContent = formatINR(spent);
+
+    const budgetText = document.getElementById("budgetLimit")?.textContent || "Not set";
+    const limit = Number(String(budgetText).replace(/[₹,\s]/g, ""));
+    const remainingElement = document.getElementById("budgetRemaining");
+    const messageElement = document.getElementById("budgetMessage");
+    if (!Number.isFinite(limit) || budgetText === "Not set" || limit <= 0) {
+        remainingElement.textContent = "—";
+        return;
+    }
+    const remaining = limit - spent;
+    remainingElement.textContent = formatINR(remaining);
+    if (remaining < 0) {
+        messageElement.textContent = `Budget exceeded by ${formatINR(Math.abs(remaining))}.`;
+        messageElement.className = "budget-message over-budget";
+    } else if (spent >= limit * 0.8) {
+        messageElement.textContent = "Warning: you have used at least 80% of this month's budget.";
+        messageElement.className = "budget-message near-budget";
+    } else {
+        messageElement.textContent = "You are within your monthly budget.";
+        messageElement.className = "budget-message";
+    }
+}
+
+document.getElementById("budgetForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!USER_ID) {
+        alert("Please login before setting a budget.");
+        return;
+    }
+    const token = getIdToken();
+    const month = document.getElementById("budgetMonth").value;
+    const amount = Number(document.getElementById("budgetAmount").value);
+    if (!token || !month || !Number.isFinite(amount) || amount <= 0) {
+        alert("Enter a valid month and budget amount.");
+        return;
+    }
+    try {
+        const response = await fetch(`${API_URL}/budget`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ month, amount })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || data.error || "Could not save budget.");
+        document.getElementById("budgetLimit").textContent = formatINR(amount);
+        updateBudgetSpent(window.smartSpendExpenses || []);
+        document.getElementById("budgetMessage").textContent = "Budget saved for " + monthLabel(month) + ".";
+        alert("Monthly budget saved.");
+    } catch (error) {
+        console.error("Save budget error:", error);
+        alert(error.message || "Could not save budget.");
+    }
+});
+
+document.getElementById("comparisonMonth")?.addEventListener("change", () => {
+    if (window.smartSpendExpenses) updateMonthlyComparison(window.smartSpendExpenses);
+});
+document.getElementById("budgetMonth")?.addEventListener("change", async () => {
+    if (window.smartSpendExpenses) updateBudgetSpent(window.smartSpendExpenses);
+    await loadBudget();
+});
+
 
 function updateDashboard(expenses) {
 
@@ -751,6 +980,9 @@ function updateDashboard(expenses) {
         "shoppingTotal"
     ).textContent =
         `₹${shopping}`;
+
+    updateMonthlyComparison(expenses);
+    updateBudgetSpent(expenses);
 
 }
 
@@ -1092,12 +1324,15 @@ async function initializeApp() {
     updateLoginButton();
 
 
-    // Load expenses only for authenticated users.
+    // Initialize month selectors and load the user's data.
+
+    const month = currentMonthValue();
+    document.getElementById("comparisonMonth").value = month;
+    document.getElementById("budgetMonth").value = month;
 
     if (USER_ID) {
-
         await loadExpenses();
-
+        await loadBudget();
     }
 
 }

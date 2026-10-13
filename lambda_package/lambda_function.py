@@ -718,6 +718,73 @@ def delete_expense(user_id, expense_id):
         }
 
 
+
+
+# ==========================================
+# Monthly budget API
+# ==========================================
+
+def get_budget(user_id, month):
+    if not re.fullmatch(r"\d{4}-\d{2}", str(month or "")):
+        return api_response(400, {"message": "A valid month in YYYY-MM format is required."})
+
+    try:
+        result = table.get_item(
+            Key={"user_id": user_id, "expense_id": f"budget#{month}"}
+        )
+        item = result.get("Item")
+        if not item or item.get("item_type") != "budget":
+            return api_response(200, {"budget": None, "month": month})
+        return api_response(200, {
+            "month": month,
+            "budget": {
+                "amount": item.get("amount"),
+                "updated_at": item.get("updated_at")
+            }
+        })
+    except Exception as e:
+        print("Error loading budget:", str(e))
+        return api_response(500, {"message": "Unable to load budget."})
+
+
+def save_budget(data, user_id):
+    month = str(data.get("month", ""))
+    if not re.fullmatch(r"\d{4}-\d{2}", month):
+        return api_response(400, {"message": "A valid month in YYYY-MM format is required."})
+
+    try:
+        year, month_number = map(int, month.split("-"))
+        if month_number < 1 or month_number > 12:
+            raise ValueError()
+    except ValueError:
+        return api_response(400, {"message": "The month is invalid."})
+
+    try:
+        amount = Decimal(str(data.get("amount", "")))
+        if not amount.is_finite() or amount <= 0:
+            raise ValueError()
+    except Exception:
+        return api_response(400, {"message": "Budget amount must be a number greater than zero."})
+
+    try:
+        table.put_item(Item={
+            "user_id": user_id,
+            "expense_id": f"budget#{month}",
+            "item_type": "budget",
+            "month": month,
+            "amount": amount,
+            "updated_at": datetime.utcnow().isoformat() + "Z"
+        })
+        return api_response(200, {
+            "message": "Monthly budget saved successfully.",
+            "month": month,
+            "amount": amount
+        })
+    except Exception as e:
+        print("Error saving budget:", str(e))
+        return api_response(500, {"message": "Unable to save budget."})
+
+
 def api_response(status_code, body):
     return {
         "statusCode": status_code,
@@ -775,6 +842,13 @@ def lambda_handler(
         expense_id = path_parameters.get("expense_id")
         if not expense_id and "/expenses/" in path:
             expense_id = path.split("/expenses/", 1)[1].split("/", 1)[0]
+
+        # GET /budget?month=YYYY-MM and PUT /budget
+        if path.endswith("/budget") and http_method == "GET":
+            query = event.get("queryStringParameters") or {}
+            return get_budget(user_id, query.get("month"))
+        if path.endswith("/budget") and http_method == "PUT":
+            return save_budget(data, user_id)
 
         # PUT /expenses/{expense_id}
         if http_method == "PUT" and expense_id:
