@@ -593,12 +593,17 @@ function displayExpenses(expenses) {
 
 
             row.innerHTML = `
-                <td>${expense.date}</td>
-                <td>${expense.description}</td>
-                <td>₹${expense.amount}</td>
-                <td>${expense.category}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><button type="button" class="edit-expense-button">Edit</button></td>
             `;
-
+            row.cells[0].textContent = expense.date || "";
+            row.cells[1].textContent = expense.description || "";
+            row.cells[2].textContent = `₹${expense.amount || "0"}`;
+            row.cells[3].textContent = expense.category || "";
+            row.querySelector(".edit-expense-button").addEventListener("click", () => editExpense(expense));
 
             tableBody.appendChild(
                 row
@@ -611,6 +616,47 @@ function displayExpenses(expenses) {
     updateDashboard(
         expenses
     );
+}
+
+
+// ==========================================
+// Edit an expense
+// ==========================================
+
+async function editExpense(expense) {
+    if (!getIdToken()) {
+        alert("Please log in again before editing expenses.");
+        return;
+    }
+    const description = prompt("Expense description:", expense.description || "");
+    if (description === null) return;
+    const amountText = prompt("Amount (₹):", expense.amount || "");
+    if (amountText === null) return;
+    const date = prompt("Date (YYYY-MM-DD):", expense.date || "");
+    if (date === null) return;
+    const categories = ["Food", "Education", "Transport", "Shopping", "Other"];
+    const categoryHelp = categories.map((item, index) => `${index + 1}. ${item}`).join("\n");
+    const categoryChoice = prompt(`Choose category by number:\n${categoryHelp}`, String(Math.max(0, categories.indexOf(expense.category)) + 1));
+    if (categoryChoice === null) return;
+    const category = categories[Number(categoryChoice) - 1];
+    if (!description.trim() || !Number.isFinite(Number(amountText)) || Number(amountText) <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !category) {
+        alert("Please enter a description, a positive amount, a valid YYYY-MM-DD date, and a valid category.");
+        return;
+    }
+    try {
+        const response = await fetch(`${API_URL}/expenses/${encodeURIComponent(expense.expense_id)}`, {
+            method: "PUT",
+            headers: { "Authorization": `Bearer ${getIdToken()}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ description: description.trim(), amount: Number(amountText), date, category })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not update expense.");
+        alert("Expense updated successfully.");
+        await loadExpenses();
+    } catch (error) {
+        console.error("Error updating expense:", error);
+        alert(`Could not update expense: ${error.message}`);
+    }
 }
 
 

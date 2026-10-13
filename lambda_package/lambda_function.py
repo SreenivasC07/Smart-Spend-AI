@@ -503,6 +503,12 @@ def save_feedback(
 
 
 # ==========================================
+# Edit an existing expense
+# ==========================================
+
+
+
+# ==========================================
 # Get saved expenses
 # ==========================================
 
@@ -623,6 +629,61 @@ def get_expenses(
     }
 
 
+
+
+# ==========================================
+# Update an existing expense
+# ==========================================
+
+def update_expense(data, user_id, expense_id):
+    """Update an expense only if it belongs to the authenticated user."""
+    description = str(data.get("description", "")).strip()
+    category = str(data.get("category", "")).strip()
+    date_value = str(data.get("date", "")).strip()
+    amount_value = data.get("amount")
+    allowed_categories = {"Food", "Education", "Transport", "Shopping", "Other"}
+
+    if not expense_id:
+        return api_response(400, {"error": "Expense ID is required."})
+    if not description or not category or not date_value or amount_value is None:
+        return api_response(400, {"error": "Description, amount, date, and category are required."})
+    if category not in allowed_categories:
+        return api_response(400, {"error": "Invalid category."})
+    try:
+        amount = Decimal(str(amount_value))
+        if amount <= 0:
+            raise ValueError()
+    except Exception:
+        return api_response(400, {"error": "Amount must be a number greater than zero."})
+
+    existing = table.get_item(Key={"user_id": user_id, "expense_id": expense_id}).get("Item")
+    if not existing or existing.get("item_type") != "expense":
+        return api_response(404, {"error": "Expense not found."})
+
+    table.update_item(
+        Key={"user_id": user_id, "expense_id": expense_id},
+        UpdateExpression="SET description = :description, amount = :amount, #category = :category, #date = :date",
+        ExpressionAttributeNames={"#category": "category", "#date": "date"},
+        ConditionExpression="item_type = :expense_type",
+        ExpressionAttributeValues={
+            ":description": description,
+            ":amount": amount,
+            ":category": category,
+            ":date": date_value,
+            ":expense_type": "expense",
+        },
+    )
+    return api_response(200, {"message": "Expense updated successfully.", "expense_id": expense_id})
+
+
+def api_response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(body, default=str),
+    }
+
+
 # ==========================================
 # Lambda Handler
 # ==========================================
@@ -663,6 +724,19 @@ def lambda_handler(
                 ""
             )
         )
+
+
+
+        http_method = (event.get("requestContext", {}).get("http", {}).get("method")
+                       or event.get("httpMethod", "GET")).upper()
+        path_parameters = event.get("pathParameters") or {}
+        expense_id = path_parameters.get("expense_id")
+        if not expense_id and "/expenses/" in path:
+            expense_id = path.split("/expenses/", 1)[1].split("/", 1)[0]
+
+        # PUT /expenses/{expense_id}
+        if http_method == "PUT" and expense_id:
+            return update_expense(data, user_id, expense_id)
 
 
         # ==================================
