@@ -675,6 +675,48 @@ def update_expense(data, user_id, expense_id):
     )
     return api_response(200, {"message": "Expense updated successfully.", "expense_id": expense_id})
 
+def delete_expense(user_id, expense_id):
+    try:
+        # Verify that this expense belongs to the authenticated user
+        response = table.get_item(
+            Key={
+                "user_id": user_id,
+                "expense_id": expense_id
+            }
+        )
+
+        item = response.get("Item")
+
+        if not item or item.get("item_type") != "expense":
+            return {
+                "statusCode": 404,
+                "body": json.dumps({"message": "Expense not found"})
+            }
+
+        # Delete only the authenticated user's expense
+        table.delete_item(
+            Key={
+                "user_id": user_id,
+                "expense_id": expense_id
+            },
+            ConditionExpression="item_type = :expense_type",
+            ExpressionAttributeValues={
+                ":expense_type": "expense"
+            }
+        )
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"message": "Expense deleted successfully"})
+        }
+
+    except Exception as e:
+        print("Error deleting expense:", str(e))
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"message": "Unable to delete expense"})
+        }
+
 
 def api_response(status_code, body):
     return {
@@ -737,6 +779,8 @@ def lambda_handler(
         # PUT /expenses/{expense_id}
         if http_method == "PUT" and expense_id:
             return update_expense(data, user_id, expense_id)
+        if http_method == "DELETE" and expense_id:
+            return delete_expense(user_id, expense_id)
 
 
         # ==================================
