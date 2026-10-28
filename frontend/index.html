@@ -5,11 +5,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartSpend AI - Personalized Expense Tracker</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+
+    <!-- Apply saved theme before first paint (prevents a light/dark flash) -->
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem("smartspend_theme");
+                var dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+                document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+            } catch (e) {
+                document.documentElement.setAttribute("data-theme", "light");
+            }
+        })();
+    </script>
 </head>
 
 <body>
 
+    <!-- ===================== Top bar ===================== -->
     <header class="topbar">
         <a class="brand" href="/" aria-label="SmartSpend AI home">
             <span class="brand-mark" aria-hidden="true">S</span>
@@ -20,199 +38,386 @@
         </a>
 
         <div class="account-area">
-            <span id="welcomeMessage" class="welcome-message" aria-live="polite"></span>
-            <button id="loginButton" class="account-button" type="button" onclick="login()">Login</button>
-            <button id="logoutButton" class="account-button logout-button hidden" type="button"
-                onclick="logout()">Logout</button>
+            <button id="themeToggle" class="btn btn-icon" type="button" aria-label="Toggle dark mode"
+                title="Toggle dark mode">🌙</button>
+            <span id="userAvatar" class="avatar hidden" aria-hidden="true"></span>
+            <span id="welcomeMessage" class="welcome-message hidden" aria-live="polite"></span>
+            <button id="loginButton" class="btn btn-primary" type="button" onclick="login()">Login</button>
+            <button id="logoutButton" class="btn btn-ghost hidden" type="button" onclick="logout()">Logout</button>
         </div>
     </header>
 
+    <!-- ===================== Loader (while checking session) ===================== -->
+    <div id="appLoader" class="app-loader" aria-label="Loading">
+        <div class="spinner"></div>
+    </div>
 
-    <main>
+    <!-- ===================== Login screen (logged-out only) ===================== -->
+    <section id="loginScreen" class="login-screen hidden">
+        <div class="hero">
+            <span class="hero-pill">✨ AI-powered expense tracking</span>
+            <h1>Know where every rupee goes.</h1>
+            <p>SmartSpend AI categorizes your expenses automatically, learns from your corrections, and helps you stay
+                inside your monthly budget.</p>
+            <button class="btn btn-primary btn-lg" type="button" onclick="login()">Login / Sign up</button>
+        </div>
 
-        <!-- Dashboard Summary -->
-        <section class="dashboard">
+        <div class="feature-row">
+            <article class="feature">
+                <span class="feature-icon">🤖</span>
+                <h3>Smart categories</h3>
+                <p>Type what you bought. The AI picks the category for you.</p>
+            </article>
+            <article class="feature">
+                <span class="feature-icon">🎯</span>
+                <h3>Monthly budgets</h3>
+                <p>Set a limit and watch your progress in real time.</p>
+            </article>
+            <article class="feature">
+                <span class="feature-icon">📊</span>
+                <h3>Clear insights</h3>
+                <p>Compare months and see your spending breakdown at a glance.</p>
+            </article>
+        </div>
+    </section>
 
-            <div class="summary-card total-card">
-                <h3>Total Spending</h3>
-                <p id="totalSpending">₹0</p>
+    <!-- ===================== Dashboard (logged-in only) ===================== -->
+    <main id="appMain" class="hidden">
+
+        <div class="page-heading">
+            <div>
+                <h1 id="greeting">Welcome back</h1>
+                <p class="muted" id="greetingSub">Here is your spending overview.</p>
             </div>
+        </div>
 
-            <div class="summary-card">
-                <h3>Food</h3>
-                <p id="foodTotal">₹0</p>
-            </div>
+        <!-- Summary cards -->
+        <section class="stats" aria-label="Spending summary">
+            <article class="stat stat-total">
+                <div class="stat-label">Total spending</div>
+                <div class="stat-value" id="totalSpending">₹0</div>
+                <div class="stat-sub" id="totalSub">0 expenses recorded</div>
+            </article>
 
-            <div class="summary-card">
-                <h3>Education</h3>
-                <p id="educationTotal">₹0</p>
-            </div>
+            <article class="stat">
+                <span class="stat-icon cat-food">🍔</span>
+                <div class="stat-label">Food</div>
+                <div class="stat-value" id="foodTotal">₹0</div>
+                <div class="stat-sub" id="foodPct">0% of total</div>
+            </article>
 
-            <div class="summary-card">
-                <h3>Transport</h3>
-                <p id="transportTotal">₹0</p>
-            </div>
+            <article class="stat">
+                <span class="stat-icon cat-education">📚</span>
+                <div class="stat-label">Education</div>
+                <div class="stat-value" id="educationTotal">₹0</div>
+                <div class="stat-sub" id="educationPct">0% of total</div>
+            </article>
 
-            <div class="summary-card">
-                <h3>Shopping</h3>
-                <p id="shoppingTotal">₹0</p>
-            </div>
+            <article class="stat">
+                <span class="stat-icon cat-transport">🚌</span>
+                <div class="stat-label">Transport</div>
+                <div class="stat-value" id="transportTotal">₹0</div>
+                <div class="stat-sub" id="transportPct">0% of total</div>
+            </article>
 
+            <article class="stat">
+                <span class="stat-icon cat-shopping">🛍️</span>
+                <div class="stat-label">Shopping</div>
+                <div class="stat-value" id="shoppingTotal">₹0</div>
+                <div class="stat-sub" id="shoppingPct">0% of total</div>
+            </article>
         </section>
 
+        <div class="grid">
 
-        <!-- Add Expense -->
-        <section class="expense-form">
+            <!-- Left column -->
+            <div class="col">
 
-            <h2>Add New Expense</h2>
+                <!-- Add expense -->
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Add new expense</h2>
+                        <span class="chip">✨ AI categorizes it</span>
+                    </div>
 
-            <form id="expenseForm">
+                    <form id="expenseForm" class="form" novalidate>
+                        <div class="field">
+                            <label for="description">Description</label>
+                            <input type="text" id="description" placeholder="e.g. Bought Python book" maxlength="120"
+                                autocomplete="off" required>
+                        </div>
 
-                <label for="description">
-                    Expense Description
-                </label>
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="amount">Amount (₹)</label>
+                                <input type="number" id="amount" placeholder="500" min="1" step="0.01"
+                                    inputmode="decimal" required>
+                            </div>
+                            <div class="field">
+                                <label for="date">Date</label>
+                                <input type="date" id="date" required>
+                            </div>
+                        </div>
 
-                <input type="text" id="description" placeholder="Example: Bought Python book" required>
+                        <button type="submit" id="addButton" class="btn btn-primary btn-block">
+                            <span class="btn-label">Add expense</span>
+                            <span class="btn-spinner" aria-hidden="true"></span>
+                        </button>
+                    </form>
+                </section>
 
+                <!-- Budget -->
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Monthly budget</h2>
+                    </div>
+                    <p class="muted">Set a limit for the month. It is saved to your account.</p>
 
-                <label for="amount">
-                    Amount (₹)
-                </label>
+                    <form id="budgetForm" class="form budget-form">
+                        <div class="field">
+                            <label for="budgetMonth">Month</label>
+                            <input type="month" id="budgetMonth" required>
+                        </div>
+                        <div class="field">
+                            <label for="budgetAmount">Budget limit (₹)</label>
+                            <input type="number" id="budgetAmount" min="1" step="0.01" placeholder="10000" required>
+                        </div>
+                        <button type="submit" id="budgetSaveButton" class="btn btn-primary">
+                            <span class="btn-label">Save</span>
+                            <span class="btn-spinner" aria-hidden="true"></span>
+                        </button>
+                    </form>
 
-                <input type="number" id="amount" placeholder="Example: 500" min="1" required>
-
-
-                <label for="date">
-                    Date
-                </label>
-
-                <input type="date" id="date" required>
-
-
-                <button type="submit">
-                    Add Expense
-                </button>
-
-            </form>
-
-        </section>
-
-
-        <!-- AI Prediction -->
-        <section class="prediction">
-
-            <h2>AI Category Prediction</h2>
-
-            <p id="predictionText">
-                Add an expense to let SmartSpend AI
-                categorize it automatically.
-            </p>
-
-            <div id="feedbackSection" class="hidden">
-
-                <p>Is this category correct?</p>
-
-                <button id="acceptButton">
-                    Yes, Correct
-                </button>
-
-                <button id="correctButton">
-                    Correct Category
-                </button>
-
+                    <div class="budget-progress">
+                        <div class="progress-top">
+                            <span>Spent <strong id="budgetSpent">₹0</strong></span>
+                            <span id="budgetPercent" class="muted">No budget set</span>
+                        </div>
+                        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                            aria-valuenow="0" id="budgetTrack">
+                            <div class="progress-fill" id="budgetBar"></div>
+                        </div>
+                        <div class="budget-numbers">
+                            <div>
+                                <small>Budget</small>
+                                <strong id="budgetLimit">Not set</strong>
+                            </div>
+                            <div>
+                                <small>Remaining</small>
+                                <strong id="budgetRemaining">—</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="budgetMessage" class="budget-message" aria-live="polite"></p>
+                </section>
             </div>
 
-        </section>
+            <!-- Right column -->
+            <div class="col">
 
+                <!-- Category breakdown -->
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Spending breakdown</h2>
+                        <span class="chip chip-muted">All time</span>
+                    </div>
 
+                    <div class="breakdown">
+                        <div class="donut" id="donut" role="img" aria-label="Spending by category">
+                            <div class="donut-hole">
+                                <strong id="donutTotal">₹0</strong>
+                                <small>total</small>
+                            </div>
+                        </div>
+                        <ul class="legend" id="donutLegend"></ul>
+                    </div>
+                </section>
 
+                <!-- Monthly comparison -->
+                <section class="card">
+                    <div class="card-head">
+                        <div>
+                            <h2>Monthly comparison</h2>
+                            <p class="muted tight">This month vs the previous month.</p>
+                        </div>
+                        <label class="month-picker" for="comparisonMonth">
+                            <span class="sr-only">Month</span>
+                            <input type="month" id="comparisonMonth">
+                        </label>
+                    </div>
 
-        <!-- Monthly Expense Comparison -->
-        <section class="feature-panel">
-            <div class="panel-heading">
-                <div>
-                    <h2>Monthly Expense Comparison</h2>
-                    <p class="muted">Compare this month with the previous month.</p>
+                    <div class="mini-cards">
+                        <div class="mini-card">
+                            <span id="currentMonthLabel">Selected month</span>
+                            <strong id="currentMonthTotal">₹0</strong>
+                        </div>
+                        <div class="mini-card">
+                            <span id="previousMonthLabel">Previous month</span>
+                            <strong id="previousMonthTotal">₹0</strong>
+                        </div>
+                        <div class="mini-card">
+                            <span>Change</span>
+                            <strong id="monthlyChange">No change</strong>
+                        </div>
+                    </div>
+
+                    <div id="monthlyChart" class="monthly-chart" aria-label="Monthly expense comparison chart"></div>
+                    <p id="monthlyComparisonMessage" class="muted" aria-live="polite"></p>
+                </section>
+            </div>
+        </div>
+
+        <!-- Expense history -->
+        <section class="card">
+            <div class="card-head wrap">
+                <h2>Expense history</h2>
+                <div class="toolbar">
+                    <input type="search" id="searchInput" class="search" placeholder="Search expenses…"
+                        aria-label="Search expenses">
+                    <select id="filterCategory" aria-label="Filter by category">
+                        <option value="">All categories</option>
+                        <option>Food</option>
+                        <option>Education</option>
+                        <option>Transport</option>
+                        <option>Shopping</option>
+                        <option>Other</option>
+                    </select>
                 </div>
-                <label class="month-picker-label" for="comparisonMonth">Month
-                    <input type="month" id="comparisonMonth">
-                </label>
             </div>
-            <div class="comparison-cards">
-                <div class="mini-card">
-                    <span id="currentMonthLabel">Selected month</span>
-                    <strong id="currentMonthTotal">₹0</strong>
-                </div>
-                <div class="mini-card">
-                    <span id="previousMonthLabel">Previous month</span>
-                    <strong id="previousMonthTotal">₹0</strong>
-                </div>
-                <div class="mini-card">
-                    <span>Change</span>
-                    <strong id="monthlyChange">No change</strong>
-                </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th class="num">Amount</th>
+                            <th class="actions-col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTable"></tbody>
+                </table>
             </div>
-            <div id="monthlyChart" class="monthly-chart" aria-label="Monthly expense comparison chart"></div>
-            <p id="monthlyComparisonMessage" class="muted" aria-live="polite"></p>
+
+            <div id="emptyMessage" class="empty-state">
+                <span class="empty-icon">🧾</span>
+                <strong>No expenses added yet</strong>
+                <p class="muted">Add your first expense above and the AI will categorize it for you.</p>
+            </div>
         </section>
 
-        <!-- Monthly Budget -->
-        <section class="feature-panel budget-panel">
-            <h2>Monthly Budget</h2>
-            <p class="muted">Set a budget for the selected month. Your budget is saved to your account.</p>
-            <form id="budgetForm" class="budget-form">
-                <label for="budgetMonth">Month
-                    <input type="month" id="budgetMonth" required>
-                </label>
-                <label for="budgetAmount">Budget limit (₹)
-                    <input type="number" id="budgetAmount" min="1" step="0.01" placeholder="Example: 10000" required>
-                </label>
-                <button type="submit">Save Budget</button>
-            </form>
-            <div class="budget-status">
-                <p>Monthly budget: <strong id="budgetLimit">Not set</strong></p>
-                <p>Spent this month: <strong id="budgetSpent">₹0</strong></p>
-                <p>Remaining: <strong id="budgetRemaining">—</strong></p>
-            </div>
-            <p id="budgetMessage" aria-live="polite" class="budget-message"></p>
-        </section>
-
-        <!-- Expense History -->
-        <section class="expense-list">
-
-            <h2>Expense History</h2>
-
-            <table>
-
-                <thead>
-
-                    <tr>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Category</th>
-                        <th>Actions</th>
-                    </tr>
-
-                </thead>
-
-                <tbody id="expenseTable">
-                </tbody>
-
-            </table>
-
-            <p id="emptyMessage">
-                No expenses added yet.
-            </p>
-
-        </section>
-
+        <footer class="footer">SmartSpend AI · Built with AWS Lambda, DynamoDB &amp; Cognito</footer>
     </main>
 
+    <!-- ===================== Modal: AI prediction ===================== -->
+    <div id="predictionModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="predTitle">
+        <div class="modal">
+            <button class="modal-close" type="button" data-close aria-label="Close">×</button>
 
-    <!-- JavaScript -->
+            <div class="pred-head">
+                <span class="pred-icon">✨</span>
+                <div>
+                    <h3 id="predTitle">AI predicted the category</h3>
+                    <p class="muted tight" id="predMeta">Expense saved</p>
+                </div>
+            </div>
+
+            <div class="pred-result">
+                <span id="predBadge" class="badge badge-lg">Food</span>
+                <div class="pred-expense">
+                    <strong id="predDescription">—</strong>
+                    <span class="muted" id="predAmount">—</span>
+                </div>
+            </div>
+
+            <p class="pred-question">Is this category correct?</p>
+
+            <div class="field">
+                <label for="predCategorySelect">Not right? Pick the correct category</label>
+                <select id="predCategorySelect">
+                    <option>Food</option>
+                    <option>Education</option>
+                    <option>Transport</option>
+                    <option>Shopping</option>
+                    <option>Other</option>
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="predConfirm" class="btn btn-primary">Yes, looks good</button>
+                <button type="button" id="predCorrect" class="btn btn-ghost" disabled>
+                    <span class="btn-label">Save correction</span>
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== Modal: Edit expense ===================== -->
+    <div id="editModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+        <div class="modal">
+            <button class="modal-close" type="button" data-close aria-label="Close">×</button>
+            <h3 id="editTitle">Edit expense</h3>
+
+            <form id="editForm" class="form" novalidate>
+                <div class="field">
+                    <label for="editDescription">Description</label>
+                    <input type="text" id="editDescription" maxlength="120" required>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="editAmount">Amount (₹)</label>
+                        <input type="number" id="editAmount" min="1" step="0.01" inputmode="decimal" required>
+                    </div>
+                    <div class="field">
+                        <label for="editDate">Date</label>
+                        <input type="date" id="editDate" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="editCategory">Category</label>
+                    <select id="editCategory">
+                        <option>Food</option>
+                        <option>Education</option>
+                        <option>Transport</option>
+                        <option>Shopping</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" id="editSave" class="btn btn-primary">
+                        <span class="btn-label">Save changes</span>
+                        <span class="btn-spinner" aria-hidden="true"></span>
+                    </button>
+                    <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================== Modal: Confirm delete ===================== -->
+    <div id="confirmModal" class="modal-overlay hidden" role="alertdialog" aria-modal="true"
+        aria-labelledby="confirmTitle">
+        <div class="modal modal-sm">
+            <button class="modal-close" type="button" data-close aria-label="Close">×</button>
+            <h3 id="confirmTitle">Delete this expense?</h3>
+            <p class="muted" id="confirmText">This cannot be undone.</p>
+            <div class="modal-actions">
+                <button type="button" id="confirmDelete" class="btn btn-danger">
+                    <span class="btn-label">Delete</span>
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== Toasts ===================== -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
     <script src="script.js"></script>
-
 </body>
 
 </html>
