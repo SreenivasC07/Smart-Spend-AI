@@ -785,6 +785,55 @@ def save_budget(data, user_id):
         return api_response(500, {"message": "Unable to save budget."})
 
 
+def get_profile(user_id):
+    """Return the display name saved for this user (stored beside their expenses)."""
+    try:
+        result = table.get_item(
+            Key={"user_id": user_id, "expense_id": "profile#info"}
+        )
+        item = result.get("Item")
+
+        if not item or item.get("item_type") != "profile":
+            return api_response(200, {"profile": None})
+
+        return api_response(200, {
+            "profile": {
+                "name": item.get("name", ""),
+                "updated_at": item.get("updated_at")
+            }
+        })
+    except Exception as e:
+        print("Error loading profile:", str(e))
+        return api_response(500, {"message": "Unable to load profile."})
+
+
+def save_profile(data, user_id):
+    """Save the display name for this user."""
+    name = " ".join(str(data.get("name", "")).split())
+
+    if not name:
+        return api_response(400, {"message": "Name is required."})
+
+    if len(name) > 40:
+        return api_response(400, {"message": "Name must be 40 characters or fewer."})
+
+    try:
+        table.put_item(Item={
+            "user_id": user_id,
+            "expense_id": "profile#info",
+            "item_type": "profile",
+            "name": name,
+            "updated_at": datetime.utcnow().isoformat() + "Z"
+        })
+        return api_response(200, {
+            "message": "Profile saved successfully.",
+            "profile": {"name": name}
+        })
+    except Exception as e:
+        print("Error saving profile:", str(e))
+        return api_response(500, {"message": "Unable to save profile."})
+
+
 def api_response(status_code, body):
     return {
         "statusCode": status_code,
@@ -849,6 +898,13 @@ def lambda_handler(
             return get_budget(user_id, query.get("month"))
         if path.endswith("/budget") and http_method == "PUT":
             return save_budget(data, user_id)
+
+        # GET /profile and PUT /profile (user's display name)
+        if path.endswith("/profile") and http_method == "GET":
+            return get_profile(user_id)
+
+        if path.endswith("/profile") and http_method == "PUT":
+            return save_profile(data, user_id)
 
         # PUT /expenses/{expense_id}
         if http_method == "PUT" and expense_id:
