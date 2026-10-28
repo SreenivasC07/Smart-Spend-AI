@@ -608,6 +608,37 @@ function greetingForNow() {
     return "Good evening";
 }
 
+// ---- Display name (typed by the user, remembered in this browser) ----
+
+function nameStorageKey() {
+    return `smartspend_name_${USER_ID}`;
+}
+
+function getSavedName() {
+    try { return (localStorage.getItem(nameStorageKey()) || "").trim(); } catch (e) { return ""; }
+}
+
+function saveName(name) {
+    try { localStorage.setItem(nameStorageKey(), name); } catch (e) { /* ignore */ }
+}
+
+// Cognito falls back to the email when no real name exists; we don't want to show that.
+function looksLikeEmail(value) {
+    return !value || String(value).includes("@") || value === "My account";
+}
+
+function currentDisplayName() {
+    const saved = getSavedName();
+    if (saved) return saved;
+    if (!looksLikeEmail(USER_NAME)) return USER_NAME;
+    return "";
+}
+
+function openNameModal() {
+    $("nameInput").value = currentDisplayName();
+    openModal("nameModal");
+}
+
 function updateLoginButton() {
     const loggedIn = Boolean(USER_ID);
 
@@ -624,15 +655,78 @@ function updateLoginButton() {
     $("appMain").classList.toggle("hidden", !loggedIn);
 
     if (loggedIn) {
-        const name = USER_NAME || "there";
-        $("welcomeMessage").textContent = `Welcome, ${name}`;
-        $("userAvatar").textContent = String(name).trim().charAt(0).toUpperCase() || "U";
-        $("greeting").textContent = `${greetingForNow()}, ${String(name).split(/[ @]/)[0]}`;
+        const name = currentDisplayName();
+        $("welcomeMessage").textContent = name ? `Welcome, ${name}` : "Welcome";
+        $("userAvatar").textContent = name ? name.charAt(0).toUpperCase() : "U";
+        $("greeting").textContent = name
+            ? `${greetingForNow()}, ${name.split(" ")[0]}`
+            : greetingForNow();
         $("greetingSub").textContent = "Here is your spending overview.";
     } else {
         $("welcomeMessage").textContent = "";
     }
 }
+
+$("welcomeMessage").addEventListener("click", openNameModal);
+$("userAvatar").addEventListener("click", openNameModal);
+
+// Load the saved name from the user's account (falls back to this browser's copy)
+async function loadProfile() {
+    if (!USER_ID) return;
+
+    try {
+        const data = await api("/profile");
+        const serverName = data.profile && data.profile.name ? String(data.profile.name).trim() : "";
+
+        if (serverName) {
+            saveName(serverName); // keep a local copy as a fallback
+        } else {
+            // Account has no name yet: if this browser already has one, upload it
+            const localName = getSavedName();
+            if (localName) {
+                api("/profile", { method: "PUT", body: { name: localName } }).catch(() => { });
+            }
+        }
+    } catch (error) {
+        // /profile route not deployed yet, or offline: just use the local copy
+        console.warn("Could not load profile:", error.message);
+    }
+
+    updateLoginButton();
+}
+
+$("nameForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const name = $("nameInput").value.trim().replace(/\s+/g, " ");
+
+    if (!name) {
+        showToast("Please enter your name.", "error");
+        return;
+    }
+
+    if (name.length > 40) {
+        showToast("Name must be 40 characters or fewer.", "error");
+        return;
+    }
+
+    const button = $("nameSave");
+    setLoading(button, true);
+
+    // Always keep a local copy so the name shows instantly
+    saveName(name);
+    updateLoginButton();
+
+    try {
+        await api("/profile", { method: "PUT", body: { name } });
+        showToast(`Nice to meet you, ${name}! Saved to your account.`, "success");
+    } catch (error) {
+        console.error("Save profile error:", error);
+        showToast("Name saved on this device only. Could not reach your account.", "info");
+    } finally {
+        setLoading(button, false);
+        closeModal("nameModal");
+    }
+});
 
 // Cognito hosted UI logout. The URI must match the allowed sign-out URL
 // configured in the Cognito app client.
@@ -1232,6 +1326,9 @@ async function initializeApp() {
     updateLoginButton();
 
     if (USER_ID) {
+        // Load the saved name from the account; ask for one if there is none yet
+        await loadProfile();
+        if (!currentDisplayName()) openNameModal();
         await Promise.all([loadExpenses(), loadBudget()]);
     }
 }

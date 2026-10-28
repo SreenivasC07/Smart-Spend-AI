@@ -40,8 +40,10 @@
         <div class="account-area">
             <button id="themeToggle" class="btn btn-icon" type="button" aria-label="Toggle dark mode"
                 title="Toggle dark mode">🌙</button>
-            <span id="userAvatar" class="avatar hidden" aria-hidden="true"></span>
-            <span id="welcomeMessage" class="welcome-message hidden" aria-live="polite"></span>
+            <button id="userAvatar" class="avatar hidden" type="button" title="Click to change your name"
+                aria-label="Change your name"></button>
+            <button id="welcomeMessage" class="welcome-message hidden" type="button" title="Click to change your name"
+                aria-live="polite"></button>
             <button id="loginButton" class="btn btn-primary" type="button" onclick="login()">Login</button>
             <button id="logoutButton" class="btn btn-ghost hidden" type="button" onclick="logout()">Logout</button>
         </div>
@@ -411,6 +413,29 @@
                 </button>
                 <button type="button" class="btn btn-ghost" data-close>Cancel</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ===================== Modal: Your name ===================== -->
+    <div id="nameModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
+        <div class="modal modal-sm">
+            <button class="modal-close" type="button" data-close aria-label="Close">×</button>
+            <h3 id="nameTitle">What should we call you?</h3>
+            <p class="muted">This name is shown on your dashboard.</p>
+            <form id="nameForm" class="form" novalidate style="margin-top:14px">
+                <div class="field">
+                    <label for="nameInput">Your name</label>
+                    <input type="text" id="nameInput" maxlength="40" placeholder="e.g. Sreenivas"
+                        autocomplete="given-name" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" id="nameSave" class="btn btn-primary">
+                        <span class="btn-label">Save name</span>
+                        <span class="btn-spinner" aria-hidden="true"></span>
+                    </button>
+                    <button type="button" class="btn btn-ghost" data-close>Not now</button>
+                </div>
+            </form>
         </div>
     </div>
 

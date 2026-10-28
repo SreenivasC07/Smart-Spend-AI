@@ -193,6 +193,24 @@ p {
     font-size: 14px;
 }
 
+button.welcome-message,
+button.avatar {
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+button.welcome-message {
+    padding: 4px 6px;
+    background: none;
+    color: inherit;
+    border-radius: 8px;
+}
+
+button.welcome-message:hover {
+    color: var(--primary);
+}
+
 .welcome-message {
     max-width: 220px;
     overflow: hidden;
